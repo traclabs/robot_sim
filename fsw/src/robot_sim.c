@@ -166,7 +166,7 @@ int32 RobotSimInit(void)
     /*
     ** Initialize housekeeping packet (clear user data area).
     */
-    CFE_MSG_Init(&RobotSimData.HkTlm.TlmHeader.Msg, ROBOT_SIM_HK_TLM_MID, sizeof(RobotSimData.HkTlm));
+    CFE_MSG_Init(&RobotSimData.HkTlm.TlmHeader.Msg, CFE_SB_ValueToMsgId(ROBOT_SIM_HK_TLM_MID), sizeof(RobotSimData.HkTlm));
 
     /*
     ** Create Software Bus message pipe.
@@ -181,7 +181,7 @@ int32 RobotSimInit(void)
     /*
     ** Subscribe to Housekeeping request commands
     */
-    status = CFE_SB_Subscribe(ROBOT_SIM_SEND_HK_MID, RobotSimData.CommandPipe);
+    status = CFE_SB_Subscribe(CFE_SB_ValueToMsgId(ROBOT_SIM_SEND_HK_MID), RobotSimData.CommandPipe);
     if (status != CFE_SUCCESS)
     {
         CFE_ES_WriteToSysLog("Robot Sim: Error Subscribing to HK request, RC = 0x%08lX\n", (unsigned long)status);
@@ -191,7 +191,7 @@ int32 RobotSimInit(void)
     /*
     ** Subscribe to ground command packets
     */
-    status = CFE_SB_Subscribe(ROBOT_SIM_CMD_MID, RobotSimData.CommandPipe);
+    status = CFE_SB_Subscribe(CFE_SB_ValueToMsgId(ROBOT_SIM_CMD_MID), RobotSimData.CommandPipe);
     if (status != CFE_SUCCESS)
     {
         CFE_ES_WriteToSysLog("Robot Sim: Error Subscribing to Command, RC = 0x%08lX\n", (unsigned long)status);
@@ -221,7 +221,7 @@ void RobotSimProcessCommandPacket(CFE_SB_Buffer_t *SBBufPtr)
 
     CFE_MSG_GetMsgId(&SBBufPtr->Msg, &MsgId);
     printf("RobotSimProcessCommandPacket() -- we're processing the cmd from MID: 0x%04x\n", CFE_SB_MsgIdToValue(MsgId));
-    switch (MsgId)
+    switch (CFE_SB_MsgIdToValue(MsgId))
     {
         case ROBOT_SIM_CMD_MID:
             RobotSimProcessGroundCommand(SBBufPtr);
