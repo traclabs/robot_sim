@@ -133,7 +133,7 @@ int32 RobotSimInit(void)
     RobotSimData.HkTlm.Payload.state.joint0 = 0.0;
     RobotSimData.HkTlm.Payload.state.joint1 = 0.0;
     RobotSimData.HkTlm.Payload.state.joint2 = 0.0;
-    RobotSimData.HkTlm.Payload.state.joint3 = -0.1;
+    RobotSimData.HkTlm.Payload.state.joint3 = 0.0;
     RobotSimData.HkTlm.Payload.state.joint4 = 0.0;
     RobotSimData.HkTlm.Payload.state.joint5 = 0.0;
     RobotSimData.HkTlm.Payload.state.joint6 = 0.0;
@@ -330,13 +330,13 @@ int32 RobotSimReportHousekeeping(const CFE_MSG_CommandHeader_t *Msg)
     RobotSimData.angle += 0.043; // 5 deg per publish
 
 
-    RobotSimData.HkTlm.Payload.state.joint0 = 0.0;
-    RobotSimData.HkTlm.Payload.state.joint1 = 0.0;
-    RobotSimData.HkTlm.Payload.state.joint2 = 0.0;
-    RobotSimData.HkTlm.Payload.state.joint3 = -0.1;
-    RobotSimData.HkTlm.Payload.state.joint4 = 0.0;
-    RobotSimData.HkTlm.Payload.state.joint5 = 0.0;
-    RobotSimData.HkTlm.Payload.state.joint6 = 0.0;
+    // RobotSimData.HkTlm.Payload.state.joint0 = 0.2;
+    // RobotSimData.HkTlm.Payload.state.joint1 = 0.0;
+    // RobotSimData.HkTlm.Payload.state.joint2 = 0.0;
+    // RobotSimData.HkTlm.Payload.state.joint3 = -.3;
+    // RobotSimData.HkTlm.Payload.state.joint4 = 0.0;
+    // RobotSimData.HkTlm.Payload.state.joint5 = 0.0;
+    // RobotSimData.HkTlm.Payload.state.joint6 = 0.27;
 
 
 
