@@ -130,6 +130,14 @@ int32 RobotSimInit(void)
 
     RobotSimData.angle = 0.0;
 
+    RobotSimData.HkTlm.Payload.state.joint0 = 0.0;
+    RobotSimData.HkTlm.Payload.state.joint1 = 0.0;
+    RobotSimData.HkTlm.Payload.state.joint2 = 0.0;
+    RobotSimData.HkTlm.Payload.state.joint3 = -0.1;
+    RobotSimData.HkTlm.Payload.state.joint4 = 0.0;
+    RobotSimData.HkTlm.Payload.state.joint5 = 0.0;
+    RobotSimData.HkTlm.Payload.state.joint6 = 0.0;
+
     /*
     ** Initialize app configuration data
     */
@@ -320,6 +328,27 @@ int32 RobotSimReportHousekeeping(const CFE_MSG_CommandHeader_t *Msg)
     // RobotSimData.HkTlm.Payload.state.joint5 = sin(RobotSimData.angle);
     // RobotSimData.HkTlm.Payload.state.joint6 = sin(RobotSimData.angle);
     RobotSimData.angle += 0.043; // 5 deg per publish
+
+
+    RobotSimData.HkTlm.Payload.state.joint0 = 0.0;
+    RobotSimData.HkTlm.Payload.state.joint1 = 0.0;
+    RobotSimData.HkTlm.Payload.state.joint2 = 0.0;
+    RobotSimData.HkTlm.Payload.state.joint3 = -0.1;
+    RobotSimData.HkTlm.Payload.state.joint4 = 0.0;
+    RobotSimData.HkTlm.Payload.state.joint5 = 0.0;
+    RobotSimData.HkTlm.Payload.state.joint6 = 0.0;
+
+
+
+    printf("\nRobotSimReportHousekeeping:\n---------------------\n");
+    printf("joint0: %f\n", RobotSimData.HkTlm.Payload.state.joint0);
+    printf("joint1: %f\n", RobotSimData.HkTlm.Payload.state.joint1);
+    printf("joint2: %f\n", RobotSimData.HkTlm.Payload.state.joint2);
+    printf("joint3: %f\n", RobotSimData.HkTlm.Payload.state.joint3);
+    printf("joint4: %f\n", RobotSimData.HkTlm.Payload.state.joint4);
+    printf("joint5: %f\n", RobotSimData.HkTlm.Payload.state.joint5);
+    printf("joint6: %f\n", RobotSimData.HkTlm.Payload.state.joint6);
+
     CFE_SB_TimeStampMsg(&RobotSimData.HkTlm.TlmHeader.Msg);
     CFE_SB_TransmitMsg(&RobotSimData.HkTlm.TlmHeader.Msg, true);
 
@@ -363,7 +392,6 @@ int32 RobotSimCmdJointState(const RobotSimJointStateCmd_t *Msg)
     float error4 = (RobotSimGoal.HkTlm.Payload.state.joint4 - RobotSimData.HkTlm.Payload.state.joint4);
     float error5 = (RobotSimGoal.HkTlm.Payload.state.joint5 - RobotSimData.HkTlm.Payload.state.joint5);
     float error6 = (RobotSimGoal.HkTlm.Payload.state.joint6 - RobotSimData.HkTlm.Payload.state.joint6);
-
 
     printf("\n---------------------\n");
     printf("---------------------\n");
