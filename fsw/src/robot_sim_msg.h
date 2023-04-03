@@ -72,6 +72,7 @@ typedef RobotSimJointCmd_t  RobotSimJointStateCmd_t;
 /*
 ** Type definition (Robot Sim housekeeping)
 */
+#define NUM_JOINTS 7
 
 typedef struct
 {
@@ -102,6 +103,15 @@ typedef struct
     CFE_MSG_TelemetryHeader_t  TlmHeader; /**< \brief Telemetry header */
     RobotSimHkTlmPayload_t Payload;   /**< \brief Telemetry payload */
 } RobotSimHkTlm_t;
+
+typedef struct
+{
+    CFE_MSG_TelemetryHeader_t  TlmHeader; /**< \brief Telemetry header */
+    RobotSimSSRMS_t joints; /**< Joint states **/
+    float Kp;
+    float errors[NUM_JOINTS];
+
+} RobotSimTlmState_t;
 
 #endif /* _robot_sim_msg_h_ */
 

@@ -42,7 +42,10 @@
 */
 RobotSimData_t RobotSimData;
 RobotSimData_t RobotSimGoal;
+RobotSimTlmState_t StateMsg;
 float Kp = 0.005;
+
+void HighRateControLoop(void);
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *  * *  * * * * **/
 /* RobotSimMain() -- Application entry point and main process loop         */
@@ -175,6 +178,7 @@ int32 RobotSimInit(void)
     ** Initialize housekeeping packet (clear user data area).
     */
     CFE_MSG_Init(&RobotSimData.HkTlm.TlmHeader.Msg, CFE_SB_ValueToMsgId(ROBOT_SIM_HK_TLM_MID), sizeof(RobotSimData.HkTlm));
+    CFE_MSG_Init(&StateMsg.TlmHeader.Msg, CFE_SB_ValueToMsgId(ROBOT_SIM_STATE_TLM_MID), sizeof(RobotSimTlmState_t));
 
     /*
     ** Create Software Bus message pipe.
@@ -206,6 +210,17 @@ int32 RobotSimInit(void)
 
         return (status);
     }
+    
+    /*
+    ** Subscribe to HR wakeup
+    */
+    status = CFE_SB_Subscribe(CFE_SB_ValueToMsgId(ROBOT_SIM_HR_WAKEUP_HK_MID), RobotSimData.CommandPipe);
+    if (status != CFE_SUCCESS)
+    {
+        CFE_ES_WriteToSysLog("Robot Sim: Error Subscribing to HR Wakeup Command, RC = 0x%08lX\n", (unsigned long)status);
+
+        return (status);
+    }
 
     CFE_EVS_SendEvent(ROBOT_SIM_STARTUP_INF_EID, CFE_EVS_EventType_INFORMATION, "Robot Sim Initialized.%s",
                       ROBOT_SIM_VERSION_STRING);
@@ -228,7 +243,7 @@ void RobotSimProcessCommandPacket(CFE_SB_Buffer_t *SBBufPtr)
     CFE_SB_MsgId_t MsgId = CFE_SB_INVALID_MSG_ID;
 
     CFE_MSG_GetMsgId(&SBBufPtr->Msg, &MsgId);
-    printf("RobotSimProcessCommandPacket() -- we're processing the cmd from MID: 0x%04x\n", CFE_SB_MsgIdToValue(MsgId));
+    //printf("RobotSimProcessCommandPacket() -- we're processing the cmd from MID: 0x%04x\n", CFE_SB_MsgIdToValue(MsgId));
     switch (CFE_SB_MsgIdToValue(MsgId))
     {
         case ROBOT_SIM_CMD_MID:
@@ -239,6 +254,10 @@ void RobotSimProcessCommandPacket(CFE_SB_Buffer_t *SBBufPtr)
             RobotSimReportHousekeeping((CFE_MSG_CommandHeader_t *)SBBufPtr);
             break;
 
+        case ROBOT_SIM_HR_WAKEUP_HK_MID:
+            HighRateControLoop();
+            break;
+            
         default:
             CFE_EVS_SendEvent(ROBOT_SIM_INVALID_MSGID_ERR_EID, CFE_EVS_EventType_ERROR,
                               "robot sim: invalid command packet,MID = 0x%x", (unsigned int)CFE_SB_MsgIdToValue(MsgId));
@@ -385,26 +404,38 @@ int32 RobotSimCmdJointState(const RobotSimJointStateCmd_t *Msg)
     RobotSimGoal.HkTlm.Payload.state.joint5 = Msg->joint5;
     RobotSimGoal.HkTlm.Payload.state.joint6 = Msg->joint6;
 
-    float error0 = (RobotSimGoal.HkTlm.Payload.state.joint0 - RobotSimData.HkTlm.Payload.state.joint0);
-    float error1 = (RobotSimGoal.HkTlm.Payload.state.joint1 - RobotSimData.HkTlm.Payload.state.joint1);
-    float error2 = (RobotSimGoal.HkTlm.Payload.state.joint2 - RobotSimData.HkTlm.Payload.state.joint2);
-    float error3 = (RobotSimGoal.HkTlm.Payload.state.joint3 - RobotSimData.HkTlm.Payload.state.joint3);
-    float error4 = (RobotSimGoal.HkTlm.Payload.state.joint4 - RobotSimData.HkTlm.Payload.state.joint4);
-    float error5 = (RobotSimGoal.HkTlm.Payload.state.joint5 - RobotSimData.HkTlm.Payload.state.joint5);
-    float error6 = (RobotSimGoal.HkTlm.Payload.state.joint6 - RobotSimData.HkTlm.Payload.state.joint6);
+    OS_printf("\nGoal:\n---------------------\n");
+    OS_printf("joint0: %f\n", Msg->joint0);
+    OS_printf("joint1: %f\n", Msg->joint1);
+    OS_printf("joint2: %f\n", Msg->joint2);
+    OS_printf("joint3: %f\n", Msg->joint3);
+    OS_printf("joint4: %f\n", Msg->joint4);
+    OS_printf("joint5: %f\n", Msg->joint5);
+    OS_printf("joint6: %f\n", Msg->joint6);
+    
+    CFE_EVS_SendEvent(ROBOT_SIM_COMMANDJNT_INF_EID, CFE_EVS_EventType_INFORMATION, "robot sim: joint state command %s",
+                      ROBOT_SIM_VERSION);
 
+    return CFE_SUCCESS;
+    
+}
+
+void HighRateControLoop(void) {
+    
+    RobotSimTlmState_t *st = &StateMsg; //RobotSimGoal.StateTlm;
+
+    st->errors[0] = (RobotSimGoal.HkTlm.Payload.state.joint0 - RobotSimData.HkTlm.Payload.state.joint0);
+    st->errors[1] = (RobotSimGoal.HkTlm.Payload.state.joint1 - RobotSimData.HkTlm.Payload.state.joint1);
+    st->errors[2] = (RobotSimGoal.HkTlm.Payload.state.joint2 - RobotSimData.HkTlm.Payload.state.joint2);
+    st->errors[3] = (RobotSimGoal.HkTlm.Payload.state.joint3 - RobotSimData.HkTlm.Payload.state.joint3);
+    st->errors[4] = (RobotSimGoal.HkTlm.Payload.state.joint4 - RobotSimData.HkTlm.Payload.state.joint4);
+    st->errors[5] = (RobotSimGoal.HkTlm.Payload.state.joint5 - RobotSimData.HkTlm.Payload.state.joint5);
+    st->errors[6] = (RobotSimGoal.HkTlm.Payload.state.joint6 - RobotSimData.HkTlm.Payload.state.joint6);
+
+#if 0
     printf("\n---------------------\n");
     printf("---------------------\n");
     printf("---------------------\n");
-
-    printf("\nGoal:\n---------------------\n");
-    printf("joint0: %f\n", Msg->joint0);
-    printf("joint1: %f\n", Msg->joint1);
-    printf("joint2: %f\n", Msg->joint2);
-    printf("joint3: %f\n", Msg->joint3);
-    printf("joint4: %f\n", Msg->joint4);
-    printf("joint5: %f\n", Msg->joint5);
-    printf("joint6: %f\n", Msg->joint6);
 
     printf("\nCurrent:\n---------------------\n");
     printf("joint0: %f\n", RobotSimData.HkTlm.Payload.state.joint0);
@@ -416,22 +447,24 @@ int32 RobotSimCmdJointState(const RobotSimJointStateCmd_t *Msg)
     printf("joint6: %f\n", RobotSimData.HkTlm.Payload.state.joint6);
 
     printf("\nError:\n---------------------\n");
-    printf("joint0: %f\n", error0);
-    printf("joint1: %f\n", error1);
-    printf("joint2: %f\n", error2);
-    printf("joint3: %f\n", error3);
-    printf("joint4: %f\n", error4);
-    printf("joint5: %f\n", error5);
-    printf("joint6: %f\n", error6);
+    printf("joint0: %f\n", st->errors[0]);
+    printf("joint1: %f\n", st->errors[1]);
+    printf("joint2: %f\n", st->errors[2]);
+    printf("joint3: %f\n", st->errors[3]);
+    printf("joint4: %f\n", st->errors[4]);
+    printf("joint5: %f\n", st->errors[5]);
+    printf("joint6: %f\n", st->errors[6]);
+#endif
+    
+    RobotSimData.HkTlm.Payload.state.joint0 = RobotSimData.HkTlm.Payload.state.joint0 + Kp * st->errors[0];
+    RobotSimData.HkTlm.Payload.state.joint1 = RobotSimData.HkTlm.Payload.state.joint1 + Kp * st->errors[1];
+    RobotSimData.HkTlm.Payload.state.joint2 = RobotSimData.HkTlm.Payload.state.joint2 + Kp * st->errors[2];
+    RobotSimData.HkTlm.Payload.state.joint3 = RobotSimData.HkTlm.Payload.state.joint3 + Kp * st->errors[3];
+    RobotSimData.HkTlm.Payload.state.joint4 = RobotSimData.HkTlm.Payload.state.joint4 + Kp * st->errors[4];
+    RobotSimData.HkTlm.Payload.state.joint5 = RobotSimData.HkTlm.Payload.state.joint5 + Kp * st->errors[5];
+    RobotSimData.HkTlm.Payload.state.joint6 = RobotSimData.HkTlm.Payload.state.joint6 + Kp * st->errors[6];
 
-    RobotSimData.HkTlm.Payload.state.joint0 = RobotSimData.HkTlm.Payload.state.joint0 + Kp * error0;
-    RobotSimData.HkTlm.Payload.state.joint1 = RobotSimData.HkTlm.Payload.state.joint1 + Kp * error1; 
-    RobotSimData.HkTlm.Payload.state.joint2 = RobotSimData.HkTlm.Payload.state.joint2 + Kp * error2;
-    RobotSimData.HkTlm.Payload.state.joint3 = RobotSimData.HkTlm.Payload.state.joint3 + Kp * error3;
-    RobotSimData.HkTlm.Payload.state.joint4 = RobotSimData.HkTlm.Payload.state.joint4 + Kp * error4;
-    RobotSimData.HkTlm.Payload.state.joint5 = RobotSimData.HkTlm.Payload.state.joint5 + Kp * error5;
-    RobotSimData.HkTlm.Payload.state.joint6 = RobotSimData.HkTlm.Payload.state.joint6 + Kp * error6;
-
+#if 0
     printf("\nDesired:\n---------------------\n");
     printf("joint0: %f\n", RobotSimData.HkTlm.Payload.state.joint0);
     printf("joint1: %f\n", RobotSimData.HkTlm.Payload.state.joint1);
@@ -440,12 +473,13 @@ int32 RobotSimCmdJointState(const RobotSimJointStateCmd_t *Msg)
     printf("joint4: %f\n", RobotSimData.HkTlm.Payload.state.joint4);
     printf("joint5: %f\n", RobotSimData.HkTlm.Payload.state.joint5);
     printf("joint6: %f\n", RobotSimData.HkTlm.Payload.state.joint6);
+#endif
 
-
-    CFE_EVS_SendEvent(ROBOT_SIM_COMMANDJNT_INF_EID, CFE_EVS_EventType_INFORMATION, "robot sim: joint state command %s",
-                      ROBOT_SIM_VERSION);
-
-    return CFE_SUCCESS;
+    st->Kp = Kp;
+    memcpy(&st->joints, &RobotSimData.HkTlm.Payload.state, sizeof(RobotSimSSRMS_t) );
+    
+    CFE_SB_TimeStampMsg(&st->TlmHeader.Msg);
+    CFE_SB_TransmitMsg(&st->TlmHeader.Msg, true);
 }
 
 
