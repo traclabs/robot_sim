@@ -43,7 +43,7 @@
 RobotSimData_t RobotSimData;
 RobotSimData_t RobotSimGoal;
 RobotSimTlmState_t StateMsg;
-float Kp = 0.005;
+float Kp = 0.001;
 
 void HighRateControLoop(void);
 
@@ -130,7 +130,8 @@ int32 RobotSimInit(void)
     */
     RobotSimData.CmdCounter = 0;
     RobotSimData.ErrCounter = 0;
-
+    RobotSimData.square_counter = 0;
+    RobotSimData.hk_counter = 0;
     RobotSimData.angle = 0.0;
 
     RobotSimData.HkTlm.Payload.state.joint0 = 0.0;
@@ -296,7 +297,7 @@ void RobotSimProcessGroundCommand(CFE_SB_Buffer_t *SBBufPtr)
             break;
 
         case ROBOT_SIM_SET_JOINTS_CC:
-            if (RobotSimVerifyCmdLength(&SBBufPtr->Msg, sizeof(RobotSimJointStateCmd_t)))
+            // if (RobotSimVerifyCmdLength(&SBBufPtr->Msg, sizeof(RobotSimJointStateCmd_t)))
             {
                 RobotSimCmdJointState((RobotSimJointStateCmd_t *)SBBufPtr);
             }
@@ -359,17 +360,25 @@ int32 RobotSimReportHousekeeping(const CFE_MSG_CommandHeader_t *Msg)
 
 
 
-    printf("\nRobotSimReportHousekeeping:\n---------------------\n");
-    printf("joint0: %f\n", RobotSimData.HkTlm.Payload.state.joint0);
-    printf("joint1: %f\n", RobotSimData.HkTlm.Payload.state.joint1);
-    printf("joint2: %f\n", RobotSimData.HkTlm.Payload.state.joint2);
-    printf("joint3: %f\n", RobotSimData.HkTlm.Payload.state.joint3);
-    printf("joint4: %f\n", RobotSimData.HkTlm.Payload.state.joint4);
-    printf("joint5: %f\n", RobotSimData.HkTlm.Payload.state.joint5);
-    printf("joint6: %f\n", RobotSimData.HkTlm.Payload.state.joint6);
+    OS_printf("\nRobotSimReportHousekeeping [%d]:\n---------------------\n", (int)RobotSimData.hk_counter);
+    OS_printf("joint0: %f\n", RobotSimData.HkTlm.Payload.state.joint0);
+    OS_printf("joint1: %f\n", RobotSimData.HkTlm.Payload.state.joint1);
+    OS_printf("joint2: %f\n", RobotSimData.HkTlm.Payload.state.joint2);
+    OS_printf("joint3: %f\n", RobotSimData.HkTlm.Payload.state.joint3);
+    OS_printf("joint4: %f\n", RobotSimData.HkTlm.Payload.state.joint4);
+    OS_printf("joint5: %f\n", RobotSimData.HkTlm.Payload.state.joint5);
+    OS_printf("joint6: %f\n", RobotSimData.HkTlm.Payload.state.joint6);
 
-    CFE_SB_TimeStampMsg(&RobotSimData.HkTlm.TlmHeader.Msg);
-    CFE_SB_TransmitMsg(&RobotSimData.HkTlm.TlmHeader.Msg, true);
+
+    if (RobotSimData.hk_counter%4 == 0)
+    {
+        OS_printf("++++++++++++++++++++ sending robot HK data\n");
+        CFE_SB_TimeStampMsg(&RobotSimData.HkTlm.TlmHeader.Msg);
+        CFE_SB_TransmitMsg(&RobotSimData.HkTlm.TlmHeader.Msg, true);
+        RobotSimData.hk_counter = 0;
+    }
+    RobotSimData.hk_counter++;
+
 
     return CFE_SUCCESS;
 
@@ -396,23 +405,28 @@ int32 RobotSimCmdJointState(const RobotSimJointStateCmd_t *Msg)
 {
     RobotSimData.CmdCounter++;
 
-    RobotSimGoal.HkTlm.Payload.state.joint0 = Msg->joint0;
-    RobotSimGoal.HkTlm.Payload.state.joint1 = Msg->joint1; 
-    RobotSimGoal.HkTlm.Payload.state.joint2 = Msg->joint2;
-    RobotSimGoal.HkTlm.Payload.state.joint3 = Msg->joint3;
-    RobotSimGoal.HkTlm.Payload.state.joint4 = Msg->joint4;
-    RobotSimGoal.HkTlm.Payload.state.joint5 = Msg->joint5;
-    RobotSimGoal.HkTlm.Payload.state.joint6 = Msg->joint6;
+    OS_printf("RobotSimData.CmdCounter: %d\n", RobotSimData.CmdCounter);
+    OS_printf("RobotSimData.CmdCounter mod: %d\n", (RobotSimData.CmdCounter%100));
 
+    RobotSimGoal.HkTlm.Payload.state.joint0 = 0.0;//Msg->joint0;
+    RobotSimGoal.HkTlm.Payload.state.joint1 = 0.0;//Msg->joint1; 
+    RobotSimGoal.HkTlm.Payload.state.joint2 = 0.0;//Msg->joint2;
+    // RobotSimGoal.HkTlm.Payload.state.joint3 = 0.0;//Msg->joint3;
+    RobotSimGoal.HkTlm.Payload.state.joint4 = 0.0;//Msg->joint4;
+    RobotSimGoal.HkTlm.Payload.state.joint5 = 0.0;//Msg->joint5;
+    RobotSimGoal.HkTlm.Payload.state.joint6 = 0.0;//Msg->joint6;
+
+#if 0
     OS_printf("\nGoal:\n---------------------\n");
-    OS_printf("joint0: %f\n", Msg->joint0);
-    OS_printf("joint1: %f\n", Msg->joint1);
-    OS_printf("joint2: %f\n", Msg->joint2);
-    OS_printf("joint3: %f\n", Msg->joint3);
-    OS_printf("joint4: %f\n", Msg->joint4);
-    OS_printf("joint5: %f\n", Msg->joint5);
-    OS_printf("joint6: %f\n", Msg->joint6);
-    
+    OS_printf("joint0: %f\n", RobotSimGoal.HkTlm.Payload.state.joint0);
+    OS_printf("joint1: %f\n", RobotSimGoal.HkTlm.Payload.state.joint1);
+    OS_printf("joint2: %f\n", RobotSimGoal.HkTlm.Payload.state.joint2);
+    OS_printf("joint3: %f\n", RobotSimGoal.HkTlm.Payload.state.joint3);
+    OS_printf("joint4: %f\n", RobotSimGoal.HkTlm.Payload.state.joint4);
+    OS_printf("joint5: %f\n", RobotSimGoal.HkTlm.Payload.state.joint5);
+    OS_printf("joint6: %f\n", RobotSimGoal.HkTlm.Payload.state.joint6);
+#endif
+
     CFE_EVS_SendEvent(ROBOT_SIM_COMMANDJNT_INF_EID, CFE_EVS_EventType_INFORMATION, "robot sim: joint state command %s",
                       ROBOT_SIM_VERSION);
 
@@ -421,7 +435,26 @@ int32 RobotSimCmdJointState(const RobotSimJointStateCmd_t *Msg)
 }
 
 void HighRateControLoop(void) {
-    
+
+    RobotSimData.square_counter++;
+    if (RobotSimData.square_counter < 5000)
+    {
+        RobotSimGoal.HkTlm.Payload.state.joint3 = -1.0;//Msg->joint3;
+    }
+    else if (RobotSimData.square_counter < 10000)
+    {
+        RobotSimGoal.HkTlm.Payload.state.joint3 = 1.0;//Msg->joint3;
+    }
+    else if (RobotSimData.square_counter == 10000)
+    {
+        RobotSimData.square_counter = 0;   
+    }
+
+    if (RobotSimData.square_counter%100 == 0)
+    {
+        OS_printf("counter: %d,  j: %f\n", (int)RobotSimData.square_counter, RobotSimGoal.HkTlm.Payload.state.joint3);
+    }
+
     RobotSimTlmState_t *st = &StateMsg; //RobotSimGoal.StateTlm;
 
     st->errors[0] = (RobotSimGoal.HkTlm.Payload.state.joint0 - RobotSimData.HkTlm.Payload.state.joint0);
@@ -433,27 +466,27 @@ void HighRateControLoop(void) {
     st->errors[6] = (RobotSimGoal.HkTlm.Payload.state.joint6 - RobotSimData.HkTlm.Payload.state.joint6);
 
 #if 0
-    printf("\n---------------------\n");
-    printf("---------------------\n");
-    printf("---------------------\n");
+    OS_printf("\n---------------------\n");
+    OS_printf("---------------------\n");
+    OS_printf("---------------------\n");
 
-    printf("\nCurrent:\n---------------------\n");
-    printf("joint0: %f\n", RobotSimData.HkTlm.Payload.state.joint0);
-    printf("joint1: %f\n", RobotSimData.HkTlm.Payload.state.joint1);
-    printf("joint2: %f\n", RobotSimData.HkTlm.Payload.state.joint2);
-    printf("joint3: %f\n", RobotSimData.HkTlm.Payload.state.joint3);
-    printf("joint4: %f\n", RobotSimData.HkTlm.Payload.state.joint4);
-    printf("joint5: %f\n", RobotSimData.HkTlm.Payload.state.joint5);
-    printf("joint6: %f\n", RobotSimData.HkTlm.Payload.state.joint6);
+    OS_printf("\nCurrent:\n---------------------\n");
+    OS_printf("joint0: %f\n", RobotSimData.HkTlm.Payload.state.joint0);
+    OS_printf("joint1: %f\n", RobotSimData.HkTlm.Payload.state.joint1);
+    OS_printf("joint2: %f\n", RobotSimData.HkTlm.Payload.state.joint2);
+    OS_printf("joint3: %f\n", RobotSimData.HkTlm.Payload.state.joint3);
+    OS_printf("joint4: %f\n", RobotSimData.HkTlm.Payload.state.joint4);
+    OS_printf("joint5: %f\n", RobotSimData.HkTlm.Payload.state.joint5);
+    OS_printf("joint6: %f\n", RobotSimData.HkTlm.Payload.state.joint6);
 
-    printf("\nError:\n---------------------\n");
-    printf("joint0: %f\n", st->errors[0]);
-    printf("joint1: %f\n", st->errors[1]);
-    printf("joint2: %f\n", st->errors[2]);
-    printf("joint3: %f\n", st->errors[3]);
-    printf("joint4: %f\n", st->errors[4]);
-    printf("joint5: %f\n", st->errors[5]);
-    printf("joint6: %f\n", st->errors[6]);
+    OS_printf("\nError:\n---------------------\n");
+    OS_printf("joint0: %f\n", st->errors[0]);
+    OS_printf("joint1: %f\n", st->errors[1]);
+    OS_printf("joint2: %f\n", st->errors[2]);
+    OS_printf("joint3: %f\n", st->errors[3]);
+    OS_printf("joint4: %f\n", st->errors[4]);
+    OS_printf("joint5: %f\n", st->errors[5]);
+    OS_printf("joint6: %f\n", st->errors[6]);
 #endif
     
     RobotSimData.HkTlm.Payload.state.joint0 = RobotSimData.HkTlm.Payload.state.joint0 + Kp * st->errors[0];
@@ -466,22 +499,26 @@ void HighRateControLoop(void) {
 
 #if 0
     printf("\nDesired:\n---------------------\n");
-    printf("joint0: %f\n", RobotSimData.HkTlm.Payload.state.joint0);
-    printf("joint1: %f\n", RobotSimData.HkTlm.Payload.state.joint1);
-    printf("joint2: %f\n", RobotSimData.HkTlm.Payload.state.joint2);
+    // printf("joint0: %f\n", RobotSimData.HkTlm.Payload.state.joint0);
+    // printf("joint1: %f\n", RobotSimData.HkTlm.Payload.state.joint1);
+    // printf("joint2: %f\n", RobotSimData.HkTlm.Payload.state.joint2);
     printf("joint3: %f\n", RobotSimData.HkTlm.Payload.state.joint3);
-    printf("joint4: %f\n", RobotSimData.HkTlm.Payload.state.joint4);
-    printf("joint5: %f\n", RobotSimData.HkTlm.Payload.state.joint5);
-    printf("joint6: %f\n", RobotSimData.HkTlm.Payload.state.joint6);
+    // printf("joint4: %f\n", RobotSimData.HkTlm.Payload.state.joint4);
+    // printf("joint5: %f\n", RobotSimData.HkTlm.Payload.state.joint5);
+    // printf("joint6: %f\n", RobotSimData.HkTlm.Payload.state.joint6);
 #endif
+
+    st->errors[3] = RobotSimGoal.HkTlm.Payload.state.joint3;
 
     st->Kp = Kp;
     memcpy(&st->joints, &RobotSimData.HkTlm.Payload.state, sizeof(RobotSimSSRMS_t) );
     
+    // if (RobotSimData.square_counter%1000 == 0)
+    {
     CFE_SB_TimeStampMsg(&st->TlmHeader.Msg);
     CFE_SB_TransmitMsg(&st->TlmHeader.Msg, true);
+    }
 }
-
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **/
 /*                                                                            */
