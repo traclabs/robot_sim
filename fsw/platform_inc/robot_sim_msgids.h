@@ -37,7 +37,7 @@
 
 #define ROBOT_SIM_HK_TLM_MID       (CFE_PLATFORM_TLM_MID_BASE + 0x16)
 #define ROBOT_SIM_STATE_TLM_MID    (CFE_PLATFORM_TLM_MID_BASE + 0x17)
-#define ROBOT_SIM_HR_WAKEUP_HK_MID (CFE_PLATFORM_TLM_MID_BASE + 0x18)
+#define ROBOT_SIM_HR_CONTROL_MID   (CFE_PLATFORM_TLM_MID_BASE + 0x18)
 #endif /* _robot_sim_msgids_h_ */
 
 /************************/

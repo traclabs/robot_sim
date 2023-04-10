@@ -215,7 +215,7 @@ int32 RobotSimInit(void)
     /*
     ** Subscribe to HR wakeup
     */
-    status = CFE_SB_Subscribe(CFE_SB_ValueToMsgId(ROBOT_SIM_HR_WAKEUP_HK_MID), RobotSimData.CommandPipe);
+    status = CFE_SB_Subscribe(CFE_SB_ValueToMsgId(ROBOT_SIM_HR_CONTROL_MID), RobotSimData.CommandPipe);
     if (status != CFE_SUCCESS)
     {
         CFE_ES_WriteToSysLog("Robot Sim: Error Subscribing to HR Wakeup Command, RC = 0x%08lX\n", (unsigned long)status);
@@ -255,7 +255,7 @@ void RobotSimProcessCommandPacket(CFE_SB_Buffer_t *SBBufPtr)
             RobotSimReportHousekeeping((CFE_MSG_CommandHeader_t *)SBBufPtr);
             break;
 
-        case ROBOT_SIM_HR_WAKEUP_HK_MID:
+        case ROBOT_SIM_HR_CONTROL_MID:
             HighRateControLoop();
             break;
             
