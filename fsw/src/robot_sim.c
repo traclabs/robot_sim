@@ -337,6 +337,8 @@ int32 RobotSimReportHousekeeping(const CFE_MSG_CommandHeader_t *Msg)
     RobotSimData.ErrCounter++;
     RobotSimData.HkTlm.Payload.CommandCounter      = RobotSimData.CmdCounter++;
 
+    OS_printf("RobotSimReportHousekeeping reporting: %d\n", RobotSimData.HkTlm.Payload.CommandCounter);
+
     /*
     ** Send housekeeping telemetry packet...
     */
