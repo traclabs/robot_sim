@@ -8,3 +8,8 @@ include_directories(${ros_app_MISSION_DIR}/fsw/platform_inc)
 # Create the app module
 add_cfe_app(robot_sim fsw/src/robot_sim.c)
 target_link_libraries(robot_sim m)
+
+target_include_directories(robot_sim PUBLIC
+    fsw/mission_inc
+    fsw/platform_inc
+    )
